@@ -1,0 +1,55 @@
+---
+title: "Proyecto 2 CDE"
+output:
+    bookdown::html_document2:
+    fig_caption: yes
+date: "`r Sys.Date()`"
+author: "Tomás Cantuarias - Raimundo Moraga - Victor Valero"
+knit: (function(inputFile,encoding) {rmarkdown::render(inputFile,encoding=encoding,output_file=file.path(dirname(inputFile),'index.html'))})
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning=FALSE,echo = TRUE)
+pacman::p_load(sf, tidyverse, sfnetworks, openrouteservice, terra, leaflet,raster, mapview, rgee)
+ee_Initialize(drive = T)
+#Cargar los datos
+Calles <- read_sf('Censo 2017 - INE/R09/R09/CALLES_PAIS_C17.shp')
+
+Comuna <- read_sf('Censo 2017 - INE/R09/R09/COMUNA_C17.shp')
+
+Distrito <- read_sf('Censo 2017 - INE/R09/R09/DISTRITO_C17.shp')
+```
+
+```{=html}
+<style> 
+body {
+text-align: justify}
+</style>
+<!-- Para tener el texto justificado--> 
+```
+## Introducción {.unnumbered}
+
+Dentro de Chile, existe una alta biodiversidad de flora y fauna, por lo cual se puede ver una gran cantidad de **ecosistemas** a través del país, especialmente en la zona **centro-sur y sur** del país. Sin embargo, muchas veces estos ecosistemas se encuentran muy alejados de la sociedad, por lo cual a la gente se le hace más dificil poder acceder a estos y disfrutar de ellos.
+
+Gracias a esto, en este informe se hará un estudio acerca de la accesibilidad de los ecosistemas con respecto a distintas ciudades, por lo cual en este caso se hará un estudio acerca de la accesibilidad de **bosques** con respecto a la ciudad de **Temuco**, que se encuentra en la región de la Araucanía del país.
+
+```{r araucania, echo=FALSE}
+for (i in 1:nrow(Comuna)) {
+ 
+   if(Comuna$NOM_COMUNA[i] == "TEMUCO"){
+     Comuna_g <- st_geometry(Comuna)
+    }
+   } 
+```
+
+## Datos {.unnumbered}
+
+Para poder entender los datos, que se pueden encontrar [acá](https://www.dropbox.com/s/6j24lrbqkqpiubs/Censo%202017%20-%20INE-20220503T151501Z-001.zip?dl=0), se procede a graficar la Novena Región del país, también conocida como la región de la Araucanía, y poder graficar la comuna de Temuco (vista en color verde) que se puede ver en el gráfico \@ref(fig:grafarau).
+
+```{r grafarau, fig.cap="Región Araucania",echo=FALSE}
+plot(Comuna_g, lwd = 3)
+
+plot(st_simplify(Comuna_g[28], dTolerance = 1e3), add=TRUE, border="green") # 1000m
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
