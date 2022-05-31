@@ -44,7 +44,7 @@ for (i in 1:nrow(Comuna)) {
 
 ## Datos {.unnumbered}
 
-Para poder entender los datos, que se pueden encontrar [acá](https://www.dropbox.com/s/6j24lrbqkqpiubs/Censo%202017%20-%20INE-20220503T151501Z-001.zip?dl=0), se procede a graficar la Novena Región del país, también conocida como la región de la Araucanía, y poder graficar la comuna de Temuco (vista en color verde) que se puede ver en el gráfico \@ref(fig:grafarau).
+Para poder entender los datos, que se pueden encontrar [acá](https://www.dropbox.com/s/6j24lrbqkqpiubs/Censo%202017%20-%20INE-20220503T151501Z-001.zip?dl=0), se procede a graficar la Novena Región del país, también conocida como la región de la Araucanía, y dentro de este mismo gráfico, graficar la comuna de Temuco (vista en color verde) que se puede ver en el gráfico \@ref(fig:grafarau).
 
 ```{r grafarau, fig.cap="Región Araucania",echo=FALSE}
 plot(Comuna_g, lwd = 3)
@@ -52,4 +52,6 @@ plot(Comuna_g, lwd = 3)
 plot(st_simplify(Comuna_g[28], dTolerance = 1e3), add=TRUE, border="green") # 1000m
 ```
 
-Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+Tomando esto en cuenta, se procede a buscar los bosques de la región, en donde se analiza la vegetación de estos ecosistemas, para poder determinar cuál es el nivel de vegetación suficiente para denominar como bosque, que en este caso será de un nivel de vegetación mayor a <>. Luego con esto se puede proceder a sacar la distancia desde Temuco a los distintos bosques de la región, y así determinar la accesibilidad. 
+
+Para poder considerar un bosque como accesible para la población de Temuco, se determina que el bosque se debe encontrar a menos de 100 [Km] de la ciudad, y debe existir un camino a este, ya sea mediante carretera, calle o algún otro, pero se debe poder acceder a este mediante un camino establecido.
