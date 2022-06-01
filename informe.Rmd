@@ -33,13 +33,19 @@ Dentro de Chile, existe una alta biodiversidad de flora y fauna, por lo cual se 
 
 Gracias a esto, en este informe se hará un estudio acerca de la accesibilidad de los ecosistemas con respecto a distintas ciudades, por lo cual en este caso se hará un estudio acerca de la accesibilidad de **bosques** con respecto a la ciudad de **Temuco**, que se encuentra en la región de la Araucanía del país.
 
-```{r araucania, echo=FALSE}
+```{r araucania, echo=FALSE,message=FALSE}
 for (i in 1:nrow(Comuna)) {
  
    if(Comuna$NOM_COMUNA[i] == "TEMUCO"){
      Comuna_g <- st_geometry(Comuna)
     }
-   } 
+}
+
+roi <- 
+  c(-72.6667, -38.7333) %>%  # Temuco
+  st_point(dim = "XYZ") %>% 
+  st_buffer(dist = 0.1) %>% 
+  sf_as_ee()
 ```
 
 ## Datos {.unnumbered}
@@ -52,6 +58,76 @@ plot(Comuna_g, lwd = 3)
 plot(st_simplify(Comuna_g[28], dTolerance = 1e3), add=TRUE, border="green") # 1000m
 ```
 
-Tomando esto en cuenta, se procede a buscar los bosques de la región, en donde se analiza la vegetación de estos ecosistemas, para poder determinar cuál es el nivel de vegetación suficiente para denominar como bosque, que en este caso será de un nivel de vegetación mayor a <>. Luego con esto se puede proceder a sacar la distancia desde Temuco a los distintos bosques de la región, y así determinar la accesibilidad. 
+Tomando esto en cuenta, se procede a buscar los bosques de la región, en donde se analiza la vegetación de estos ecosistemas. (Ver gráfico \@ref(fig:bosques)) Luego con esto se puede proceder a sacar la distancia desde Temuco a los distintos bosques de la región, y así determinar la accesibilidad. 
 
-Para poder considerar un bosque como accesible para la población de Temuco, se determina que el bosque se debe encontrar a menos de 100 [Km] de la ciudad, y debe existir un camino a este, ya sea mediante carretera, calle o algún otro, pero se debe poder acceder a este mediante un camino establecido.
+Para poder considerar un bosque como accesible para la población de Temuco, se determina que el bosque se debe encontrar a menos de 65 [Km] de la ciudad, y debe existir un camino a este, ya sea mediante carretera, calle o algún otro, pero se debe poder acceder a este mediante un camino establecido. En el gráfico \@ref(fig:bosques) se puede apreciar un mapa que muestra los niveles de vegetación en un radio de 80 [Km] centrado en Temuco. Estos niveles de vegetación se consiguieron utilizando el satélite **LANDSAT** y la librería de **Google Earth Engine**, en donde se visualizan distintos índices espectrales, en este caso se utiliza el índice **NDVI** el cual determina niveles de vegetación utilizando la banda espectral roja y cercana al infrarrojo.
+
+```{r bosques,fig.cap="Bosques en la Araucanía",echo=FALSE}
+# identifico posibles fechas de imagenes del LS8
+disponible <- ee$ImageCollection('LANDSAT/LC08/C01/T1_TOA')$
+  filterDate('2020-07-01','2022-05-10')$
+  filterBounds(roi)$
+  filterMetadata('CLOUD_COVER','less_than', 5)
+
+# ordeno las fechas
+df_disponible <- ee_get_date_ic(disponible)%>%
+  arrange(time_start)
+image <- ee$Image("LANDSAT/LC08/C01/T1_TOA/LC08_233087_20210112")
+vizParams <- list(
+  min = 0,
+  max = 0.5,
+  bands = c("B6", "B5", "B4"),
+  gamma = c(0.95, 1.1, 1)
+)
+Map$setCenter(-72.6667, -38.7333, 6.5)
+#Map$addLayer(image, vizParams)
+
+
+
+# Simple Single-Band Vizualization
+ndwi <- image$normalizedDifference(c("B3", "B5"))
+ndwiViz <- list(
+  min = 0.3,
+  max = 1,
+  palette = c("00FFFF", "0000FF")
+)
+## Masking
+ndwiMasked <- ndwi$updateMask(ndwi$gte(0.4))
+
+## Produce an RGB layers.
+imageRGB <- image$visualize(
+  list(
+    bands = c("B5", "B4", "B3"),
+    max = 0.7 
+  )
+)
+
+ndwiRGB <- ndwiMasked$visualize(
+  list(
+    min = 0.5,
+    max = 1,
+    palette = c("00FFFF", "0000FF")
+  )
+)
+
+# Mosaic the visualization layers and display( or export).
+roi <- ee$Geometry$Point(c(-72.6667, -38.7333))$buffer(65000)
+Map$centerObject(image$clip(roi))
+Map$addLayer(
+  eeObject = image$clip(roi),
+  visParams = vizParams,
+  name = "Landsat 8"
+) +
+  Map$addLayer(
+    eeObject = ndwiMasked$clip(roi),
+    visParams = ndwiViz,
+    name = "NDWI"
+  )
+```
+
+Tomando este mapa en cuenta, se pueden ver distintas secciones dentro de nuestro radio, en donde los colores verdes más oscuros es donde se concentra un mayor nivel de vegetación, por lo cual se podría inferir que ahí existe un bosque o algún otro de conjunto de árboles, ya sea en una montaña o solamente un conjunto de árboles sin una gran extensión como para ser considerado bosque.
+
+Luego de esto se procede a comenzar el cálculo de accesibilidad.
+
+## Accesibilidad {.unnumbered}
+
