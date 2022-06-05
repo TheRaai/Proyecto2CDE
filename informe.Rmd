@@ -1,5 +1,5 @@
 ---
-title: "Proyecto 2 CDE"
+title: "Análisis Accesibilidad a bosques en Temuco"
 output:
     bookdown::html_document2:
     fig_caption: yes
@@ -11,13 +11,31 @@ knit: (function(inputFile,encoding) {rmarkdown::render(inputFile,encoding=encodi
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(warning=FALSE,echo = TRUE)
 pacman::p_load(sf, tidyverse, sfnetworks, openrouteservice, terra, leaflet,raster, mapview, rgee)
+pacman::p_load(sp, data.table, ggplot2, stplanr, osrm, leafem, RColorBrewer)
+
 ee_Initialize(drive = T)
 #Cargar los datos
-Calles <- read_sf('Censo 2017 - INE/R09/R09/CALLES_PAIS_C17.shp')
 
 Comuna <- read_sf('Censo 2017 - INE/R09/R09/COMUNA_C17.shp')
 
-Distrito <- read_sf('Censo 2017 - INE/R09/R09/DISTRITO_C17.shp')
+pos_cerro_nnienol = c(-72.3234, -38.4341)
+pos_china_muerta = c(-71.673544, -38.691048)
+pos_santuario_canni = c(-71.7667, -39.2552)
+pos_salto_princesa = c(-71.6733, -38.4745)
+
+pos_temuco =c(-72.5905, -38.7384)
+
+lugares <- tribble(~nombre, ~lon, ~lat,
+                   'Temuco', pos_temuco[1], pos_temuco[2],
+                   'Cerro ñienol', pos_cerro_nnienol[1], pos_cerro_nnienol[2],
+                   "parque Conguillío",pos_china_muerta[1], pos_china_muerta[2],
+                   'Santuario Cañi', pos_santuario_canni[1], pos_santuario_canni[2],
+                   'Salto de la Princesa', pos_salto_princesa[1], pos_salto_princesa[2])
+
+lugares_sf <- st_as_sf(lugares, coords = c("lon", "lat"))
+
+list_rutas <- vector(mode = "list", length = 4)
+
 ```
 
 ```{=html}
@@ -58,9 +76,9 @@ plot(Comuna_g, lwd = 3)
 plot(st_simplify(Comuna_g[28], dTolerance = 1e3), add=TRUE, border="green") # 1000m
 ```
 
-Tomando esto en cuenta, se procede a buscar los bosques de la región, en donde se analiza la vegetación de estos ecosistemas. (Ver gráfico \@ref(fig:bosques)) Luego con esto se puede proceder a sacar la distancia desde Temuco a los distintos bosques de la región, y así determinar la accesibilidad. 
+Tomando esto en cuenta, se procede a buscar los bosques de la región, en donde se analiza la vegetación de estos ecosistemas. (Ver gráfico \@ref(fig:bosques)) Luego con esto se puede proceder a sacar la distancia desde Temuco a los distintos bosques de la región, y así determinar la accesibilidad.
 
-Para poder considerar un bosque como accesible para la población de Temuco, se determina que el bosque se debe encontrar a menos de 65 [Km] de la ciudad, y debe existir un camino a este, ya sea mediante carretera, calle o algún otro, pero se debe poder acceder a este mediante un camino establecido. En el gráfico \@ref(fig:bosques) se puede apreciar un mapa que muestra los niveles de vegetación en un radio de 80 [Km] centrado en Temuco. Estos niveles de vegetación se consiguieron utilizando el satélite **LANDSAT** y la librería de **Google Earth Engine**, en donde se visualizan distintos índices espectrales, en este caso se utiliza el índice **NDVI** el cual determina niveles de vegetación utilizando la banda espectral roja y cercana al infrarrojo.
+Para poder considerar un bosque como accesible para la población de Temuco, se determina que el bosque se debe encontrar a menos de 65 [Km] de la ciudad, y debe existir un camino a este, ya sea mediante carretera, calle o algún otro, pero se debe poder acceder a este mediante un camino establecido. En el gráfico \@ref(fig:bosques) se puede apreciar un mapa que muestra los niveles de vegetación en un radio de 65 [Km] centrado en Temuco. Estos niveles de vegetación se consiguieron utilizando el satélite **LANDSAT** y la librería de **Google Earth Engine**, en donde se visualizan distintos índices espectrales, en este caso se utiliza el índice **NDVI** el cual determina niveles de vegetación utilizando la banda espectral roja y cercana al infrarrojo.
 
 ```{r bosques,fig.cap="Bosques en la Araucanía",echo=FALSE}
 # identifico posibles fechas de imagenes del LS8
@@ -125,9 +143,50 @@ Map$addLayer(
   )
 ```
 
-Tomando este mapa en cuenta, se pueden ver distintas secciones dentro de nuestro radio, en donde los colores verdes más oscuros es donde se concentra un mayor nivel de vegetación, por lo cual se podría inferir que ahí existe un bosque o algún otro de conjunto de árboles, ya sea en una montaña o solamente un conjunto de árboles sin una gran extensión como para ser considerado bosque.
+Tomando este mapa en cuenta, se pueden ver distintas secciones dentro de nuestro radio, en donde los colores verdes más oscuros es donde se concentra un mayor nivel de vegetación, por lo cual se podría inferir que ahí existe un bosque o algún otro de conjunto de árboles, ya sea en una montaña o solamente un conjunto de árboles sin una gran extensión como para ser considerado bosque. Cabe destacar que si bien se tiene la imagen de la vegetación, esta puede no estar 100% coordinada con el mapa debajo de ella, ya que la imagen de vegetación se consigue con una imagen satelital, mientras que el mapa se actualiza de manera más frecuente, por lo que puede existir un desfase en las imágenes.
 
 Luego de esto se procede a comenzar el cálculo de accesibilidad.
 
+```{r isocrona, echo=FALSE,message=FALSE}
+camino <- function(desde, hasta){
+  tmp <- route(from = desde,
+              to = hasta,
+              route_fun = osrmRoute,
+              returnclass = "sf")
+  return(tmp)
+  }
+
+list_rutas[[1]] = camino(pos_temuco,pos_cerro_nnienol)
+list_rutas[[2]] = camino(pos_temuco,pos_china_muerta)
+list_rutas[[3]] = camino(pos_temuco,pos_santuario_canni)
+list_rutas[[4]] = camino(pos_temuco,pos_salto_princesa)
+
+#isocronas cada 30 minutos entre 0 y 1,5 horas
+isocrona = osrmIsochrone(loc = pos_temuco, breaks = seq(from = 0, to = 150, by = 30))
+roi <- ee$Geometry$Point(c(-72.6667, -38.7333))$buffer(100000)
+```
+
 ## Accesibilidad {.unnumbered}
 
+Para calcular la accesibilidad, se marcaron distintos parques que se encontraron en el radio de 65 [Km], pero se vió que no existían parques en este rango, excepto el Cerro ñienol, por lo cual se decide aumentar el radio a 100 [Km] para poder tener un mayor análisis. Como se puede ver en el gráfico 3, también se marcaron distintas isocronas, las cuales tenían un rango de 30 minutos, donde se ven desde 0 a 150 minutos. Estas sirven para determinar en qué lugares se encuentra una accesibilidad en el mismo tiempo, y así determinar qué lugares tienen accesibilidades parecidas. 
+
+Además se muestran los caminos que existen desde Temuco a los distintos lugares utilizando las rutas de calles y carreteras que se ven en los mapas.
+
+```{r mapar,fig.cap="Caminos e isocronas a parques",echo=FALSE}
+mapview(isocrona, legend = FALSE, homebutton=FALSE,layer.name="Isocronas") + mapview(list_rutas, legend = FALSE, homebutton=FALSE) + mapview(lugares_sf, homebutton=FALSE,layer.name="Parques y bosques") + mapview(ee_as_sf(roi), legend=FALSE, homebutton=FALSE,layer.name="Rango de 100 [Km]")
+```
+
+Como se puede apreciar en el gráfico anterior, existen 4 bosques o parques nacionales en el rango determinado, estos siendo:
+
+* Cerro Ñienol
+* Parque Conguillío
+* Salto de la princesa
+* Santuario Cañi
+
+en donde el cerro Ñienol se encuentra en la isocrona 2, por lo cual es el más cercano a Temuco, y por lo mismo si se ve el camino es el más corto. Luego, se tiene el parque Conguillío y el salto de la princesa, que se encuentran en la isocrona 4, por lo que tienen una accesibilidad parecida, y ambos al tener un camino determinado, se puede decir que son accesibles en un tiempo parecido. Finalmente, existe el Santuario Cañi en la isocrona 5, ya que es el más alejado de Temuco.
+
+## Conclusiones {.unnumbered}
+
+Concluyendo, se puede ver que no existe un alto número de bosques y parques que se encuentren cercanos a Temuco, lo cual tiene sentido gracias a que al ser una ciudad con un tamaño elevado, no existe una flora tan desarrollada cercana a esta, pero de igual manera existen lugares con niveles de vegetación elevados.
+
+Por otro lado, se puede ver que existen distintos parques accesibles en auto u otro medio de transporte, que existen en un tiempo y distancia aceptable desde la ciudad, y las isocronas nos permiten descubrir que varios de estos se pueden acceder en tiempos parecidos independiente de que tengan distancias distintas, gracias a la variable de altura o dificultad del camino.
