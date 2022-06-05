@@ -27,7 +27,7 @@ pos_temuco =c(-72.5905, -38.7384)
 
 lugares <- tribble(~nombre, ~lon, ~lat,
                    'Temuco', pos_temuco[1], pos_temuco[2],
-                   'Cerro ñienol', pos_cerro_nnienol[1], pos_cerro_nnienol[2],
+                   'Cerro ñielol', pos_cerro_nnienol[1], pos_cerro_nnienol[2],
                    "parque Conguillío",pos_china_muerta[1], pos_china_muerta[2],
                    'Santuario Cañi', pos_santuario_canni[1], pos_santuario_canni[2],
                    'Salto de la Princesa', pos_salto_princesa[1], pos_salto_princesa[2])
@@ -168,7 +168,7 @@ roi <- ee$Geometry$Point(c(-72.6667, -38.7333))$buffer(100000)
 
 ## Accesibilidad {.unnumbered}
 
-Para calcular la accesibilidad, se marcaron distintos parques que se encontraron en el radio de 65 [Km], pero se vió que no existían parques en este rango, excepto el Cerro ñienol, por lo cual se decide aumentar el radio a 100 [Km] para poder tener un mayor análisis. Como se puede ver en el gráfico 3, también se marcaron distintas isocronas, las cuales tenían un rango de 30 minutos, donde se ven desde 0 a 150 minutos. Estas sirven para determinar en qué lugares se encuentra una accesibilidad en el mismo tiempo, y así determinar qué lugares tienen accesibilidades parecidas. 
+Para calcular la accesibilidad, se marcaron distintos parques que se encontraron en el radio de 65 [Km], pero se vió que no existían parques en este rango, excepto el Cerro ñielol, por lo cual se decide aumentar el radio a 100 [Km] para poder tener un mayor análisis. Como se puede ver en el gráfico 3, también se marcaron distintas isocronas, las cuales tenían un rango de 30 minutos, donde se ven desde 0 a 150 minutos. Estas sirven para determinar en qué lugares se encuentra una accesibilidad en el mismo tiempo, y así determinar qué lugares tienen accesibilidades parecidas. 
 
 Además se muestran los caminos que existen desde Temuco a los distintos lugares utilizando las rutas de calles y carreteras que se ven en los mapas.
 
@@ -178,12 +178,12 @@ mapview(isocrona, legend = FALSE, homebutton=FALSE,layer.name="Isocronas") + map
 
 Como se puede apreciar en el gráfico anterior, existen 4 bosques o parques nacionales en el rango determinado, estos siendo:
 
-* Cerro Ñienol
+* Cerro Ñielol
 * Parque Conguillío
 * Salto de la princesa
 * Santuario Cañi
 
-en donde el cerro Ñienol se encuentra en la isocrona 2, por lo cual es el más cercano a Temuco, y por lo mismo si se ve el camino es el más corto. Luego, se tiene el parque Conguillío y el salto de la princesa, que se encuentran en la isocrona 4, por lo que tienen una accesibilidad parecida, y ambos al tener un camino determinado, se puede decir que son accesibles en un tiempo parecido. Finalmente, existe el Santuario Cañi en la isocrona 5, ya que es el más alejado de Temuco.
+en donde el cerro Ñielol se encuentra en la isocrona 2, por lo cual es el más cercano a Temuco, y por lo mismo si se ve el camino es el más corto. Luego, se tiene el parque Conguillío y el salto de la princesa, que se encuentran en la isocrona 4, por lo que tienen una accesibilidad parecida, y ambos al tener un camino determinado, se puede decir que son accesibles en un tiempo parecido. Finalmente, existe el Santuario Cañi en la isocrona 5, ya que es el más alejado de Temuco.
 
 ## Conclusiones {.unnumbered}
 
